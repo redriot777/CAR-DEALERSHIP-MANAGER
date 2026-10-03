@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Car Dealership Management System</title>
+    <meta name="description" content="Professional car dealership inventory management system. Add, view, edit, and delete vehicles in your PostgreSQL-backed dealership database." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════ TOAST ══════════════════════════════════ -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ════════════════════════════════ HEADER ════════════════════════════════ -->
+<header class="site-header">
+    <div class="header-inner">
+        <div class="header-brand">
+            <div class="header-logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 20L6 14L10 10H22L26 14L28 20V24H4V20Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <circle cx="9" cy="24" r="3" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="23" cy="24" r="3" stroke="currentColor" stroke-width="2"/>
+                    <path d="M9 14H23" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="header-title">CAR DEALERSHIP MANAGEMENT</h1>
+                <p class="header-subtitle">Manage your dealership inventory with ease</p>
+            </div>
+        </div>
+        <div class="header-status" id="db-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Connecting...</span>
+        </div>
+    </div>
+</header>
+
+<!-- ════════════════════════════ DASHBOARD STATS ═══════════════════════════ -->
+<main class="main-content">
+    <section class="stats-section" aria-label="Inventory statistics">
+        <div class="stat-card" id="stat-total">
+            <div class="stat-icon stat-icon--blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">TOTAL CARS</div>
+                <div class="stat-value" id="stat-total-val">—</div>
+            </div>
+        </div>
+        <div class="stat-card" id="stat-available">
+            <div class="stat-icon stat-icon--green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">AVAILABLE</div>
+                <div class="stat-value" id="stat-available-val">—</div>
+            </div>
+        </div>
+        <div class="stat-card" id="stat-sold">
+            <div class="stat-icon stat-icon--red">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">SOLD / UNAVAILABLE</div>
+                <div class="stat-value" id="stat-sold-val">—</div>
+            </div>
+        </div>
+        <div class="stat-card" id="stat-value">
+            <div class="stat-icon stat-icon--gold">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-info">
+                <div class="stat-label">TOTAL INVENTORY VALUE</div>
+                <div class="stat-value" id="stat-value-val">—</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════ ADD / EDIT FORM ═══════════════════════ -->
+    <section class="form-section" aria-label="Car entry form">
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title" id="form-title">ADD NEW CAR</h2>
+                <div class="form-mode-badge" id="form-mode-badge">NEW</div>
+            </div>
+            <form id="car-form" novalidate>
+                <input type="hidden" id="edit-car-id" value="" />
+                <div class="form-grid">
+                    <!-- Brand -->
+                    <div class="form-group">
+                        <label for="brand" class="form-label">Brand <span class="required">*</span></label>
+                        <input type="text" id="brand" name="brand" class="form-input" placeholder="e.g. BMW" maxlength="100" required autocomplete="off" />
+                        <span class="form-error" id="err-brand"></span>
+                    </div>
+                    <!-- Model -->
+                    <div class="form-group">
+                        <label for="model" class="form-label">Model <span class="required">*</span></label>
+                        <input type="text" id="model" name="model" class="form-input" placeholder="e.g. X5" maxlength="100" required autocomplete="off" />
+                        <span class="form-error" id="err-model"></span>
+                    </div>
+                    <!-- Year -->
+                    <div class="form-group">
+                        <label for="year" class="form-label">Year <span class="required">*</span></label>
+                        <input type="number" id="year" name="year" class="form-input" placeholder="e.g. 2025" min="1886" max="2028" required />
+                        <span class="form-error" id="err-year"></span>
+                    </div>
+                    <!-- Price -->
+                    <div class="form-group">
+                        <label for="price" class="form-label">Price (₹) <span class="required">*</span></label>
+                        <input type="number" id="price" name="price" class="form-input" placeholder="e.g. 8500000" min="1" step="0.01" required />
+                        <span class="form-error" id="err-price"></span>
+                    </div>
+                    <!-- Fuel Type -->
+                    <div class="form-group">
+                        <label for="fuel_type" class="form-label">Fuel Type <span class="required">*</span></label>
+                        <select id="fuel_type" name="fuel_type" class="form-select" required>
+                            <option value="">Select Fuel Type</option>
+                            <option value="Petrol">Petrol</option>
+                            <option value="Diesel">Diesel</option>
+                            <option value="Electric">Electric</option>
+                            <option value="Hybrid">Hybrid</option>
+                            <option value="CNG">CNG</option>
+                        </select>
+                        <span class="form-error" id="err-fuel_type"></span>
+                    </div>
+                    <!-- Transmission -->
+                    <div class="form-group">
+                        <label for="transmission" class="form-label">Transmission <span class="required">*</span></label>
+                        <select id="transmission" name="transmission" class="form-select" required>
+                            <option value="">Select Transmission</option>
+                            <option value="Automatic">Automatic</option>
+                            <option value="Manual">Manual</option>
+                            <option value="CVT">CVT</option>
+                            <option value="Semi-Automatic">Semi-Automatic</option>
+                        </select>
+                        <span class="form-error" id="err-transmission"></span>
+                    </div>
+                    <!-- Color -->
+                    <div class="form-group">
+                        <label for="color" class="form-label">Color</label>
+                        <input type="text" id="color" name="color" class="form-input" placeholder="e.g. Black" maxlength="50" autocomplete="off" />
+                    </div>
+                    <!-- Mileage -->
+                    <div class="form-group">
+                        <label for="mileage" class="form-label">Mileage (km)</label>
+                        <input type="number" id="mileage" name="mileage" class="form-input" placeholder="e.g. 12000" min="0" />
+                        <span class="form-error" id="err-mileage"></span>
+                    </div>
+                    <!-- Availability -->
+                    <div class="form-group">
+                        <label for="availability" class="form-label">Availability</label>
+                        <select id="availability" name="availability" class="form-select">
+                            <option value="true">Available</option>
+                            <option value="false">Sold / Unavailable</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn--primary" id="submit-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span id="submit-btn-text">ADD CAR</span>
+                    </button>
+                    <button type="button" class="btn btn--ghost" id="cancel-btn" style="display:none;" onclick="cancelEdit()">
+                        CANCEL
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- ═══════════════════════════ INVENTORY TABLE ════════════════════════ -->
+    <section class="table-section" aria-label="Car inventory">
+        <div class="section-card">
+            <div class="section-header">
+                <h2 class="section-title">INVENTORY</h2>
+                <div class="table-controls">
+                    <!-- Search -->
+                    <div class="search-wrapper">
+                        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="search" id="search-input" class="search-input" placeholder="Search cars..." aria-label="Search cars" />
+                    </div>
+                    <!-- Fuel Filter -->
+                    <select id="filter-fuel" class="filter-select" aria-label="Filter by fuel type">
+                        <option value="">All Fuels</option>
+                        <option value="Petrol">Petrol</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Electric">Electric</option>
+                        <option value="Hybrid">Hybrid</option>
+                        <option value="CNG">CNG</option>
+                    </select>
+                    <!-- Transmission Filter -->
+                    <select id="filter-transmission" class="filter-select" aria-label="Filter by transmission">
+                        <option value="">All Transmissions</option>
+                        <option value="Automatic">Automatic</option>
+                        <option value="Manual">Manual</option>
+                        <option value="CVT">CVT</option>
+                        <option value="Semi-Automatic">Semi-Automatic</option>
+                    </select>
+                    <!-- Availability Filter -->
+                    <select id="filter-availability" class="filter-select" aria-label="Filter by availability">
+                        <option value="">All Status</option>
+                        <option value="true">Available</option>
+                        <option value="false">Sold</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Loading State -->
+            <div class="loading-state" id="loading-state">
+                <div class="spinner"></div>
+                <p>Loading inventory from database...</p>
+            </div>
+            <!-- Error State -->
+            <div class="error-state" id="error-state" style="display:none;">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <h3>Unable to connect to the database</h3>
+                <p id="error-message">Please check your PostgreSQL configuration and ensure the server is running.</p>
+            </div>
+            <!-- Empty State -->
+            <div class="empty-state" id="empty-state" style="display:none;">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <h3>No cars in inventory</h3>
+                <p>Add your first car using the form above.</p>
+            </div>
+            <!-- Table -->
+            <div class="table-wrapper" id="table-wrapper" style="display:none;">
+                <table class="cars-table" id="cars-table" role="table" aria-label="Car inventory table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Brand</th>
+                            <th>Model</th>
+                            <th>Year</th>
+                            <th>Price</th>
+                            <th>Fuel Type</th>
+                            <th>Transmission</th>
+                            <th>Color</th>
+                            <th>Mileage</th>
+                            <th>Availability</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cars-tbody"></tbody>
+                </table>
+            </div>
+            <div class="table-footer" id="table-footer" style="display:none;">
+                <span id="record-count"></span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- ═══════════════════════════ VIEW MODAL ════════════════════════════════ -->
+<div class="modal-overlay" id="view-modal" role="dialog" aria-modal="true" aria-labelledby="view-modal-title" style="display:none;">
+    <div class="modal-box modal-box--view">
+        <button class="modal-close" id="view-close-btn" onclick="closeViewModal()" aria-label="Close modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div class="modal-header">
+            <div class="modal-car-icon">
+                <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 20L6 14L10 10H22L26 14L28 20V24H4V20Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <circle cx="9" cy="24" r="3" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="23" cy="24" r="3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+            <div>
+                <p class="modal-eyebrow">CAR DETAILS</p>
+                <h3 class="modal-car-name" id="view-modal-title">—</h3>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="detail-grid" id="view-detail-grid"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn--ghost" onclick="closeViewModal()">CLOSE</button>
+            <button class="btn btn--primary" id="view-edit-btn" onclick="editFromView()">EDIT CAR</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════ DELETE CONFIRM MODAL ════════════════════ -->
+<div class="modal-overlay" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" style="display:none;">
+    <div class="modal-box modal-box--confirm">
+        <div class="confirm-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </div>
+        <h3 class="confirm-title" id="delete-modal-title">Delete Car?</h3>
+        <p class="confirm-message" id="delete-modal-message">Are you sure you want to delete this car? This action cannot be undone.</p>
+        <div class="confirm-actions">
+            <button class="btn btn--ghost" onclick="closeDeleteModal()">CANCEL</button>
+            <button class="btn btn--danger" id="confirm-delete-btn" onclick="confirmDelete()">DELETE</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
